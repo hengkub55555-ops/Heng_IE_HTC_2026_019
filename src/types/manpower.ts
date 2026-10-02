@@ -29,6 +29,8 @@ export interface WeeklyOrders {
   };
 }
 
+export type ShareRatioFormulaMode = 'total_weekly_volume' | 'base_volume' | 'process_volume';
+
 export interface CalculationSettings {
   modelTitle: string;
   area: string;
@@ -39,6 +41,7 @@ export interface CalculationSettings {
   weeks: string[]; // ['1W', '2W', '3W', '4W']
   roundingMode: 'round' | 'ceil' | 'floor' | 'exact';
   activeSectionId: PlantSectionId;
+  shareRatioMode: ShareRatioFormulaMode; // 'total_weekly_volume' (หารด้วยยอดรวมทั้งหมด) | 'base_volume' (17,500)
 }
 
 export interface CalculatedRow {
@@ -52,6 +55,9 @@ export interface CalculatedRow {
 
 export interface SegmentSummary {
   lineSegment: LineSegment;
+  processTotalOrders: Record<string, number>; // week -> total orders in this process
+  processTotalMonthOrders: number; // total across 4 weeks
+  processTotalShares: Record<string, number>; // week -> sum of shares in this process
   weightedHours: Record<string, number>; // week -> seconds
   uph: Record<string, number>; // week -> UPH
   rawManpower: Record<string, number>; // week -> exact float

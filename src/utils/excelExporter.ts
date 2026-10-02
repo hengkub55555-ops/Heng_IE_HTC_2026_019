@@ -124,6 +124,24 @@ export function exportManpowerToExcel(
 
         wsData.push(row);
       });
+
+      // Add Process Subtotal (SUM) Row into Excel export
+      const procOrderVals = weeks.map((w) => summary?.processTotalOrders[w] ?? 0);
+      const procShareVals = weeks.map((w) => `${(summary?.processTotalShares[w] ?? 0).toFixed(1)}%`);
+      const procSumRow = [
+        '',
+        '',
+        `SUM: ${segment.name}`,
+        'ยอดรวมกระบวนการ (Process SUM)',
+        '/',
+        ...procOrderVals,
+        ...procShareVals,
+        '', '', '', '', // weighted
+        '', '', '', '', // uph
+        '', '', '', '', // manpower
+        '',
+      ];
+      wsData.push(procSumRow);
     });
 
     // Totals Row

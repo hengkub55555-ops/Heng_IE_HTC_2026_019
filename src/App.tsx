@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   ALL_LINE_SEGMENTS,
   DEFAULT_PRODUCTS,
@@ -13,19 +13,62 @@ import { MasterTable } from './components/MasterTable';
 import { ManpowerCharts } from './components/ManpowerCharts';
 import { ParametersModal } from './components/ParametersModal';
 import { OriginalImageModal } from './components/OriginalImageModal';
-import { PlantSectionId } from './types/manpower';
-import { Table, BarChart3, Download, CheckCircle2 } from 'lucide-react';
+import { FormulaGuideModal } from './components/FormulaGuideModal';
+import { PlantSectionId, ShareRatioFormulaMode } from './types/manpower';
+import { Table, BarChart3, Download, CheckCircle2, HelpCircle, Save } from 'lucide-react';
+
+const STORAGE_KEY = 'manpower_sizing_state_v2';
 
 export default function App() {
-  const [lineSegments, setLineSegments] = useState(ALL_LINE_SEGMENTS);
+  // Initialize from localStorage if present
+  const [lineSegments, setLineSegments] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`${STORAGE_KEY}_segments`);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error(e);
+    }
+    return ALL_LINE_SEGMENTS;
+  });
+
   const [products] = useState(DEFAULT_PRODUCTS);
-  const [orders, setOrders] = useState(DEFAULT_WEEKLY_ORDERS);
-  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+
+  const [orders, setOrders] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`${STORAGE_KEY}_orders`);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error(e);
+    }
+    return DEFAULT_WEEKLY_ORDERS;
+  });
+
+  const [settings, setSettings] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`${STORAGE_KEY}_settings`);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error(e);
+    }
+    return DEFAULT_SETTINGS;
+  });
 
   const [activeTab, setActiveTab] = useState<'table' | 'charts' | 'compare'>('table');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isOriginalImageOpen, setIsOriginalImageOpen] = useState(false);
-  const [exportNotification, setExportNotification] = useState<string | null>(null);
+  const [isFormulaModalOpen, setIsFormulaModalOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Auto-save changes to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(`${STORAGE_KEY}_segments`, JSON.stringify(lineSegments));
+      localStorage.setItem(`${STORAGE_KEY}_orders`, JSON.stringify(orders));
+      localStorage.setItem(`${STORAGE_KEY}_settings`, JSON.stringify(settings));
+    } catch (err) {
+      console.error('Failed to auto-save to localStorage:', err);
+    }
+  }, [lineSegments, orders, settings]);
 
   // Recalculate whenever inputs or active section change
   const result = useMemo(() => {
@@ -34,7 +77,7 @@ export default function App() {
 
   // Update order quantity
   const handleUpdateOrder = (productId: string, week: string, value: number) => {
-    setOrders((prev) => ({
+    setOrders((prev: any) => ({
       ...prev,
       [productId]: {
         ...(prev[productId] || {}),
@@ -45,8 +88,8 @@ export default function App() {
 
   // Update product cycle time
   const handleUpdateCycleTime = (segmentId: string, productId: string, value: number) => {
-    setLineSegments((prev) =>
-      prev.map((seg) => {
+    setLineSegments((prev: any) =>
+      prev.map((seg: any) => {
         if (seg.id === segmentId) {
           return {
             ...seg,
@@ -63,8 +106,8 @@ export default function App() {
 
   // Update UPH
   const handleUpdateUph = (segmentId: string, value: number) => {
-    setLineSegments((prev) =>
-      prev.map((seg) => {
+    setLineSegments((prev: any) =>
+      prev.map((seg: any) => {
         if (seg.id === segmentId) {
           return { ...seg, uph: Math.max(1, value) };
         }
@@ -75,23 +118,54 @@ export default function App() {
 
   // Change active section
   const handleChangeSection = (sectionId: PlantSectionId) => {
-    setSettings((prev) => ({ ...prev, activeSectionId: sectionId }));
+    setSettings((prev: any) => ({ ...prev, activeSectionId: sectionId }));
+  };
+
+  // Change Share Ratio Formula Mode
+  const handleChangeShareRatioMode = (mode: ShareRatioFormulaMode) => {
+    setSettings((prev: any) => ({ ...prev, shareRatioMode: mode }));
+    setToastMessage(
+      mode === 'total_weekly_volume'
+        ? 'เปลี่ยนสูตร Share Ratio: หารยอด Volume ทั้งหมด (สัดส่วนรวม 100%) เรียบร้อยแล้ว'
+        : mode === 'process_volume'
+        ? 'เปลี่ยนสูตร Share Ratio: หารยอดรวมของแต่ละ Process เรียบร้อยแล้ว'
+        : 'เปลี่ยนสูตร Share Ratio: หารฐานความจุ 17,500 ชิ้น เรียบร้อยแล้ว'
+    );
+    setTimeout(() => setToastMessage(null), 4000);
+  };
+
+  // Save explicitly to storage
+  const handleSaveToStorage = () => {
+    try {
+      localStorage.setItem(`${STORAGE_KEY}_segments`, JSON.stringify(lineSegments));
+      localStorage.setItem(`${STORAGE_KEY}_orders`, JSON.stringify(orders));
+      localStorage.setItem(`${STORAGE_KEY}_settings`, JSON.stringify(settings));
+      setToastMessage('บันทึกข้อมูลทุกตัวเลขลงหน่วยความจำของเว็บเรียบร้อยแล้ว');
+      setTimeout(() => setToastMessage(null), 4000);
+    } catch (e) {
+      alert('ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่อีกครั้ง');
+    }
   };
 
   // Reset to original data
   const handleResetData = () => {
+    localStorage.removeItem(`${STORAGE_KEY}_segments`);
+    localStorage.removeItem(`${STORAGE_KEY}_orders`);
+    localStorage.removeItem(`${STORAGE_KEY}_settings`);
     setLineSegments(ALL_LINE_SEGMENTS);
     setOrders(DEFAULT_WEEKLY_ORDERS);
     setSettings(DEFAULT_SETTINGS);
+    setToastMessage('คืนค่าข้อมูลเริ่มต้นตามภาพเอกสารเรียบร้อยแล้ว');
+    setTimeout(() => setToastMessage(null), 4000);
   };
 
-  // Export to Excel (Generates multi-sheet workbook with both sections and total summary)
+  // Export to Excel
   const handleExportExcel = () => {
     try {
       const fileName = `Thailand_Factory_Manpower_Model_LineB_${new Date().toISOString().slice(0, 10)}.xlsx`;
       exportManpowerToExcel(lineSegments, products, orders, settings, fileName);
-      setExportNotification(`ดาวน์โหลดไฟล์ Excel เรียบร้อยแล้ว (ครอบคลุมทั้ง 2 แผ่นงานและสรุปผล): ${fileName}`);
-      setTimeout(() => setExportNotification(null), 5000);
+      setToastMessage(`ดาวน์โหลดไฟล์ Excel เรียบร้อยแล้ว (ครอบคลุมแถว SUM และการคำนวณทั้งหมด): ${fileName}`);
+      setTimeout(() => setToastMessage(null), 5000);
     } catch (err) {
       console.error('Failed to export Excel:', err);
       alert('เกิดข้อผิดพลาดในการดาวน์โหลด Excel');
@@ -101,11 +175,11 @@ export default function App() {
   // Filtered segments for current active section view
   const currentSectionSegments = useMemo(() => {
     if (settings.activeSectionId === 'all') return lineSegments;
-    return lineSegments.filter((s) => s.sectionId === settings.activeSectionId);
+    return lineSegments.filter((s: any) => s.sectionId === settings.activeSectionId);
   }, [lineSegments, settings.activeSectionId]);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col text-slate-900">
+    <div className="min-h-screen bg-slate-50 flex flex-col text-slate-900 font-['Plus_Jakarta_Sans','Sarabun',sans-serif]">
       {/* Top Bar Header */}
       <Header
         activeTab={activeTab}
@@ -113,13 +187,15 @@ export default function App() {
         onExportExcel={handleExportExcel}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenOriginalImage={() => setIsOriginalImageOpen(true)}
+        onOpenFormulaGuide={() => setIsFormulaModalOpen(true)}
+        onSaveData={handleSaveToStorage}
       />
 
-      {/* Export Notification Toast */}
-      {exportNotification && (
-        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 border border-slate-700 animate-in slide-in-from-bottom-5">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-          <span className="text-xs font-medium">{exportNotification}</span>
+      {/* Notification Toast */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 border border-slate-700 animate-in slide-in-from-bottom-5">
+          <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+          <span className="text-xs font-medium">{toastMessage}</span>
         </div>
       )}
 
@@ -142,34 +218,53 @@ export default function App() {
             </h1>
             <p className="text-xs text-slate-600 mt-1 max-w-2xl">
               ระบบวิเคราะห์และคำนวณอัตรากำลังคนมาตรฐานฝ่ายผลิต (IE Manpower Planning Model)
-              ครอบคลุมทั้งสายงานขึ้นรูป-โฟม (7 สาย) และสายงานประกอบ-ท้ายไลน์ (5 สาย)
+              พร้อมสูตรคำนวณจากเวลามาตรฐาน (ST) แถวรวมยอดแต่ละ Process และลิงก์สัดส่วน Share Ratio อัตโนมัติ
             </p>
           </div>
 
-          {/* Quick Tab Segmented Control */}
-          <div className="flex items-center p-1 bg-slate-200/80 rounded-xl self-start sm:self-auto">
+          {/* Quick Actions / Tabs */}
+          <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
             <button
-              onClick={() => setActiveTab('table')}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-                activeTab === 'table'
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
+              onClick={() => setIsFormulaModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 rounded-lg transition-colors"
             >
-              <Table className="w-3.5 h-3.5 text-blue-600" />
-              <span>ตารางคำนวณหลัก</span>
+              <HelpCircle className="w-4 h-4 text-blue-600" />
+              <span>สูตรคำนวณกำลังคน</span>
             </button>
+
             <button
-              onClick={() => setActiveTab('charts')}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-                activeTab === 'charts'
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
+              onClick={handleSaveToStorage}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg transition-colors shadow-xs"
             >
-              <BarChart3 className="w-3.5 h-3.5 text-emerald-600" />
-              <span>สรุปผลด้วยกราฟ</span>
+              <Save className="w-4 h-4 text-blue-600" />
+              <span>บันทึกข้อมูล</span>
             </button>
+
+            {/* Quick Tab Segmented Control */}
+            <div className="flex items-center p-1 bg-slate-200/80 rounded-xl">
+              <button
+                onClick={() => setActiveTab('table')}
+                className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
+                  activeTab === 'table'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Table className="w-3.5 h-3.5 text-blue-600" />
+                <span>ตารางคำนวณหลัก</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('charts')}
+                className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
+                  activeTab === 'charts'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <BarChart3 className="w-3.5 h-3.5 text-emerald-600" />
+                <span>สรุปผลด้วยกราฟ</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -190,6 +285,9 @@ export default function App() {
               onUpdateUph={handleUpdateUph}
               onResetData={handleResetData}
               onChangeSection={handleChangeSection}
+              onChangeShareRatioMode={handleChangeShareRatioMode}
+              onSaveToStorage={handleSaveToStorage}
+              onOpenFormulaGuide={() => setIsFormulaModalOpen(true)}
             />
 
             {/* Quick Export Banner */}
@@ -201,7 +299,7 @@ export default function App() {
                 <div>
                   <h3 className="text-sm font-bold">ต้องการนำข้อมูลไปใช้งานต่อในโปรแกรม Excel หรือนำเสนอผู้บริหาร?</h3>
                   <p className="text-xs text-blue-200 mt-0.5">
-                    ไฟล์ Excel ประกอบด้วย 3 Sheet ครอบคลุมทั้งสองแผ่นงานเอกสาร (ขึ้นรูป-โฟม, ประกอบ-ท้ายไลน์ และสรุปภาพรวม)
+                    ไฟล์ Excel ประกอบด้วย 3 Sheet ครอบคลุมทั้งสองแผ่นงานเอกสาร พร้อมช่อง SUM รวมแต่ละ Process และสูตรคำนวณครบถ้วน
                   </p>
                 </div>
               </div>
@@ -235,7 +333,12 @@ export default function App() {
             <span>Thailand Factory Headcount Sizing System (LineB CAB)</span>
           </div>
           <div className="flex items-center gap-4 text-slate-500">
-            <span>สูตรมาตรฐาน Industrial Engineering (IE)</span>
+            <button
+              onClick={() => setIsFormulaModalOpen(true)}
+              className="text-blue-600 hover:underline font-semibold"
+            >
+              สูตรการคำนวณกำลังคน
+            </button>
             <span aria-hidden="true">·</span>
             <button
               onClick={() => setIsSettingsOpen(true)}
@@ -267,6 +370,17 @@ export default function App() {
       <OriginalImageModal
         isOpen={isOriginalImageOpen}
         onClose={() => setIsOriginalImageOpen(false)}
+      />
+
+      {/* Formula Guide Modal */}
+      <FormulaGuideModal
+        isOpen={isFormulaModalOpen}
+        onClose={() => setIsFormulaModalOpen(false)}
+        result={result}
+        lineSegments={lineSegments}
+        products={products}
+        orders={orders}
+        settings={settings}
       />
     </div>
   );

@@ -47,6 +47,59 @@ export const ParametersModal: React.FC<ParametersModalProps> = ({
 
         {/* Content Form */}
         <div className="p-6 space-y-4 text-xs">
+          {/* Share Ratio Formula Mode */}
+          <div>
+            <label className="block font-semibold text-slate-700 mb-1">
+              สูตรการคำนวณสัดส่วนผลผลิต (Share Ratio Formula)
+            </label>
+            <div className="space-y-1.5 mt-1">
+              {[
+                {
+                  id: 'total_weekly_volume',
+                  title: 'Order Volume ÷ ยอดผลิตรวมทั้งสัปดาห์ (แนะนำ)',
+                  desc: 'สัดส่วนรวมทุกรุ่นในสัปดาห์นั้นจะเท่ากับ 100% เชื่อมโยงกับ Order Volume โดยตรง',
+                },
+                {
+                  id: 'base_volume',
+                  title: 'Order Volume ÷ ฐานกำลังผลิต (17,500 ชิ้น)',
+                  desc: 'สูตรคงที่ตามแม่แบบตารางเอกสารเดิม',
+                },
+                {
+                  id: 'process_volume',
+                  title: 'Order Volume ÷ ยอดรวมของกระบวนการนั้น',
+                  desc: 'คิดสัดส่วนเฉพาะภายใน Process เดียวกัน',
+                },
+              ].map((opt) => (
+                <label
+                  key={opt.id}
+                  className={`flex items-start gap-2.5 p-2.5 rounded-lg border cursor-pointer transition-colors ${
+                    localSettings.shareRatioMode === opt.id
+                      ? 'border-blue-500 bg-blue-50/60 text-blue-900'
+                      : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="shareRatioMode"
+                    value={opt.id}
+                    checked={localSettings.shareRatioMode === opt.id}
+                    onChange={() =>
+                      setLocalSettings({
+                        ...localSettings,
+                        shareRatioMode: opt.id as any,
+                      })
+                    }
+                    className="mt-0.5 accent-blue-600"
+                  />
+                  <div>
+                    <div className="font-semibold text-xs">{opt.title}</div>
+                    <div className="text-[11px] text-slate-500 mt-0.5">{opt.desc}</div>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
+
           {/* Base Volume */}
           <div>
             <label className="block font-semibold text-slate-700 mb-1">

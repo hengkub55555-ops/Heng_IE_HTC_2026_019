@@ -270,4 +270,5 @@ export const DEFAULT_SETTINGS: CalculationSettings = {
   weeks: ['1W', '2W', '3W', '4W'],
   roundingMode: 'round',
   activeSectionId: 'pre_foaming', // Default to newly uploaded sheet (Rooling, Inner Box, Cab per, PU Foam)
+  shareRatioMode: 'total_weekly_volume', // หาร Volume ทั้งหมดเป็นยอด Ratio เชื่อมโยงกับ Order Volume โดยตรง
 };
