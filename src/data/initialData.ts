@@ -1,4 +1,12 @@
-import { LineSegment, ProductModel, WeeklyOrders, CalculationSettings, PlantSection } from '../types/manpower';
+import {
+  LineSegment,
+  ProductModel,
+  WeeklyOrders,
+  CalculationSettings,
+  PlantSection,
+  BLineIndirectRole,
+  BLineShiftSettings,
+} from '../types/manpower';
 
 export const PLANT_SECTIONS: PlantSection[] = [
   {
@@ -271,4 +279,87 @@ export const DEFAULT_SETTINGS: CalculationSettings = {
   roundingMode: 'round',
   activeSectionId: 'pre_foaming', // Default to newly uploaded sheet (Rooling, Inner Box, Cab per, PU Foam)
   shareRatioMode: 'total_weekly_volume', // หาร Volume ทั้งหมดเป็นยอด Ratio เชื่อมโยงกับ Order Volume โดยตรง
+};
+
+export const DEFAULT_BLINE_INDIRECT_ROLES: BLineIndirectRole[] = [
+  {
+    id: 'leader',
+    roleName: 'Line Leader & Group Leader',
+    roleThaiName: 'หัวหน้าสายการผลิต & หัวหน้ากลุ่ม (Line B)',
+    category: 'supervision',
+    headcount: { '1W': 2, '2W': 2, '3W': 2, '4W': 2 },
+    avgHeadcount: 2,
+    shift: 'กะ A & B (1 คน/กะ)',
+    responsibilities: 'ควบคุมยอดการผลิต ตรวจสอบวินัย 5S และประสานงานหน้างาน',
+  },
+  {
+    id: 'supervisor',
+    roleName: 'Shift Supervisor',
+    roleThaiName: 'หัวหน้ากะฝ่ายผลิต (Production Supervisor)',
+    category: 'supervision',
+    headcount: { '1W': 1, '2W': 1, '3W': 1, '4W': 1 },
+    avgHeadcount: 1,
+    shift: 'กะปกติ',
+    responsibilities: 'กำกับดูแลเป้าหมายประจำวันและจัดการแก้ปัญหาฉุกเฉิน',
+  },
+  {
+    id: 'qc_inspector',
+    roleName: 'QC / QA Line Inspector',
+    roleThaiName: 'พนักงานตรวจสอบคุณภาพประจำไลน์ B',
+    category: 'quality',
+    headcount: { '1W': 3, '2W': 3, '3W': 4, '4W': 4 },
+    avgHeadcount: 4,
+    shift: 'ประจำไลน์ทั้งกะ',
+    responsibilities: 'ตรวจสอบรอยขูดขีด จุดรั่วระบบความเย็น และสุ่มตรวจความหนาโฟม',
+  },
+  {
+    id: 'material_handler',
+    roleName: 'Material Handler / Water Spider',
+    roleThaiName: 'พนักงานส่งจ่ายวัตถุดิบ & คิตติ้ง (Mizusumashi)',
+    category: 'logistics',
+    headcount: { '1W': 2, '2W': 3, '3W': 4, '4W': 4 },
+    avgHeadcount: 3,
+    shift: 'ทุกกะการผลิต',
+    responsibilities: 'ลำเลียงชิ้นส่วน คอมเพรสเซอร์ คอยล์ และกล่องโฟมสู่หน้าไลน์',
+  },
+  {
+    id: 'maintenance_tech',
+    roleName: 'Maintenance Technician',
+    roleThaiName: 'ช่างเทคนิคซ่อมบำรุงประจำไลน์ B',
+    category: 'technical',
+    headcount: { '1W': 1, '2W': 2, '3W': 2, '4W': 2 },
+    avgHeadcount: 2,
+    shift: 'สแตนด์บายประจำไลน์',
+    responsibilities: 'บำรุงรักษาเครื่องฉีดโฟม เครื่องแวคคั่ม และระบบสายพานลำเลียง',
+  },
+  {
+    id: 'die_tooling',
+    roleName: 'Tooling & Die Setter',
+    roleThaiName: 'ช่างเปลี่ยนโมลด์และจิ๊กประกอบ',
+    category: 'technical',
+    headcount: { '1W': 1, '2W': 1, '3W': 1, '4W': 1 },
+    avgHeadcount: 1,
+    shift: 'ช่วงเปลี่ยนรุ่นโมเดล',
+    responsibilities: 'ปรับจิ๊กและเปลี่ยนแม่พิมพ์รีดขึ้นรูป Rooling & PU Foam',
+  },
+  {
+    id: 'reliever_float',
+    roleName: 'Reliever / Offline Float Worker',
+    roleThaiName: 'พนักงานสำรองหมุนเวียนงาน (Reliever)',
+    category: 'support',
+    headcount: { '1W': 2, '2W': 3, '3W': 4, '4W': 4 },
+    avgHeadcount: 3,
+    shift: 'ประจำไลน์สลับกะ',
+    responsibilities: 'รองรับการหมุนเวียนพักประจำชั่วโมงและทดแทนพนักงานลางาน',
+  },
+];
+
+export const DEFAULT_BLINE_SHIFT_SETTINGS: BLineShiftSettings = {
+  dayShiftHours: 8,
+  dayShiftEffectiveMinutes: 420,
+  nightShiftHours: 8,
+  workDaysPerWeek: 6,
+  workDaysPerMonth: 26,
+  activeShifts: 1,
+  otHoursPerDay: 2.5,
 };

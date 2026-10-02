@@ -31,6 +31,27 @@ export interface WeeklyOrders {
 
 export type ShareRatioFormulaMode = 'total_weekly_volume' | 'base_volume' | 'process_volume';
 
+export interface BLineIndirectRole {
+  id: string;
+  roleName: string;
+  roleThaiName: string;
+  category: 'supervision' | 'quality' | 'logistics' | 'technical' | 'support';
+  headcount: Record<string, number>; // week -> headcount
+  avgHeadcount: number;
+  shift: string; // e.g. 'กะ A & B', 'กะ A'
+  responsibilities: string;
+}
+
+export interface BLineShiftSettings {
+  dayShiftHours: number; // default 8
+  dayShiftEffectiveMinutes: number; // default 420
+  nightShiftHours: number; // default 8
+  workDaysPerWeek: number; // default 6
+  workDaysPerMonth: number; // default 26
+  activeShifts: number; // 1 or 2 shifts
+  otHoursPerDay: number; // default 2.5
+}
+
 export interface CalculationSettings {
   modelTitle: string;
   area: string;
