@@ -1,0 +1,273 @@
+import { LineSegment, ProductModel, WeeklyOrders, CalculationSettings, PlantSection } from '../types/manpower';
+
+export const PLANT_SECTIONS: PlantSection[] = [
+  {
+    id: 'pre_foaming',
+    name: 'Pre-Assembly & Foaming',
+    thaiName: 'ขึ้นรูป, กล่องใน & ฉีดโฟม (Pre-Assembly & Foaming)',
+    chineseName: '钣金、内胆 & 发泡线段',
+    description: '7 สายการผลิต: Rooling, Inner Box 1-2, Cab per 1-2, PU Foam 1-2',
+  },
+  {
+    id: 'assembly_final',
+    name: 'Assembly & Final Line',
+    thaiName: 'ประกอบวงจร, ทำความเย็น & ท้ายไลน์ (Assembly & Final)',
+    chineseName: '装配、抽空、冷系统 & 总装包装线段',
+    description: '5 สายการผลิต: System, Assembly & Door, Coolling, Final, Packing',
+  },
+  {
+    id: 'all',
+    name: 'All LineB CAB Processes',
+    thaiName: 'รวมกระบวนการทั้งหมดใน LineB CAB (Total 12 Lines)',
+    chineseName: 'LineB CAB 全流程汇总 (共12个线段)',
+    description: 'รวมทั้ง 12 สายการผลิตของฝ่ายผลิตตู้เย็น LineB CAB',
+  },
+];
+
+export const DEFAULT_PRODUCTS: ProductModel[] = [
+  { id: '1door_150', name: '1Door 150' },
+  { id: '1door_190', name: '1Door 190' },
+  { id: 'tm545', name: 'TM545' },
+  { id: 'tm595', name: 'TM595' },
+  { id: 'tdoor_us', name: 'T Door US' },
+  { id: 'tm10', name: 'TM 10' },
+  { id: 'tm12', name: 'TM 12' },
+  { id: 'fuf', name: 'FUF' },
+];
+
+export const ALL_LINE_SEGMENTS: LineSegment[] = [
+  // ==========================================
+  // SECTION 1: Pre-Assembly & Foaming (Sheet 2)
+  // ==========================================
+  {
+    id: 'rooling',
+    sectionId: 'pre_foaming',
+    name: 'Rooling',
+    thaiName: 'รีดขึ้นรูปโลหะ (Roll Forming)',
+    uph: 120,
+    productCycleTimes: {
+      '1door_150': 100.86,
+      '1door_190': 100.86,
+      'tm545': 102.98,
+      'tm595': 102.39,
+      'tdoor_us': 35.95,
+      'tm10': 118.90,
+      'tm12': 118.90,
+      'fuf': 169.47,
+    },
+  },
+  {
+    id: 'inner_box_1',
+    sectionId: 'pre_foaming',
+    name: 'Inner Box 1',
+    thaiName: 'กล่องในตู้ 1 (Inner Box Line 1)',
+    uph: 70,
+    productCycleTimes: {
+      '1door_150': 198.88,
+      '1door_190': 344.93,
+      'tm545': 848.03,
+      'tm595': 1112.42,
+      'tdoor_us': 0.00,
+      'tm10': 998.88,
+      'tm12': 924.27,
+      'fuf': 75.30,
+    },
+  },
+  {
+    id: 'inner_box_2',
+    sectionId: 'pre_foaming',
+    name: 'Inner Box 2',
+    thaiName: 'กล่องในตู้ 2 (Inner Box Line 2 - FUF)',
+    uph: 70,
+    productCycleTimes: {
+      '1door_150': 0.00,
+      '1door_190': 0.00,
+      'tm545': 0.00,
+      'tm595': 0.00,
+      'tdoor_us': 0.00,
+      'tm10': 0.00,
+      'tm12': 0.00,
+      'fuf': 615.67,
+    },
+  },
+  {
+    id: 'cab_per_1',
+    sectionId: 'pre_foaming',
+    name: 'Cab per1',
+    thaiName: 'ประกอบตัวถังขั้นต้น 1 (Cab Pre-Assembly 1)',
+    uph: 70,
+    productCycleTimes: {
+      '1door_150': 209.22,
+      '1door_190': 209.59,
+      'tm545': 341.70,
+      'tm595': 400.39,
+      'tdoor_us': 737.75,
+      'tm10': 319.62,
+      'tm12': 319.62,
+      'fuf': 0.00,
+    },
+  },
+  {
+    id: 'cab_per_2',
+    sectionId: 'pre_foaming',
+    name: 'Cab per2',
+    thaiName: 'ประกอบตัวถังขั้นต้น 2 (Cab Pre-Assembly 2 - FUF)',
+    uph: 70,
+    productCycleTimes: {
+      '1door_150': 0.00,
+      '1door_190': 0.00,
+      'tm545': 0.00,
+      'tm595': 0.00,
+      'tdoor_us': 0.00,
+      'tm10': 0.00,
+      'tm12': 0.00,
+      'fuf': 922.39,
+    },
+  },
+  {
+    id: 'pu_foam_1',
+    sectionId: 'pre_foaming',
+    name: 'PU Foam1',
+    thaiName: 'ฉีดโฟมตู้ 1 (Polyurethane Foaming Line 1)',
+    uph: 70,
+    productCycleTimes: {
+      '1door_150': 230.94,
+      '1door_190': 243.20,
+      'tm545': 239.99,
+      'tm595': 47.27,
+      'tdoor_us': 0.00,
+      'tm10': 313.84,
+      'tm12': 313.84,
+      'fuf': 0.00,
+    },
+  },
+  {
+    id: 'pu_foam_2',
+    sectionId: 'pre_foaming',
+    name: 'PU Foam2',
+    thaiName: 'ฉีดโฟมตู้ 2 (Polyurethane Foaming Line 2 - FUF)',
+    uph: 70,
+    productCycleTimes: {
+      '1door_150': 0.00,
+      '1door_190': 0.00,
+      'tm545': 0.00,
+      'tm595': 0.00,
+      'tdoor_us': 0.00,
+      'tm10': 0.00,
+      'tm12': 0.00,
+      'fuf': 191.84,
+    },
+  },
+
+  // ==========================================
+  // SECTION 2: Assembly & Final Line (Sheet 1)
+  // ==========================================
+  {
+    id: 'system',
+    sectionId: 'assembly_final',
+    name: 'System',
+    thaiName: 'ระบบท่อและวงจร (System Cycle)',
+    uph: 120,
+    productCycleTimes: {
+      '1door_150': 152.71,
+      '1door_190': 152.71,
+      'tm545': 187.46,
+      'tm595': 187.46,
+      'tdoor_us': 361.69,
+      'tm10': 328.41,
+      'tm12': 328.41,
+      'fuf': 374.56,
+    },
+  },
+  {
+    id: 'assembly',
+    sectionId: 'assembly_final',
+    name: 'Assembly & Vacuum & Door assembly',
+    thaiName: 'ประกอบ, แวคคั่ม & ประตู (Assembly & Door)',
+    uph: 70,
+    productCycleTimes: {
+      '1door_150': 261.77,
+      '1door_190': 258.87,
+      'tm545': 354.17,
+      'tm595': 354.17,
+      'tdoor_us': 0.00,
+      'tm10': 410.33,
+      'tm12': 379.61,
+      'fuf': 0.00,
+    },
+  },
+  {
+    id: 'cooling',
+    sectionId: 'assembly_final',
+    name: 'Coolling',
+    thaiName: 'ระบบทำความเย็น (Cooling Line)',
+    uph: 70,
+    productCycleTimes: {
+      '1door_150': 73.36,
+      '1door_190': 76.08,
+      'tm545': 139.46,
+      'tm595': 139.46,
+      'tdoor_us': 183.01,
+      'tm10': 139.46,
+      'tm12': 139.46,
+      'fuf': 139.46,
+    },
+  },
+  {
+    id: 'final',
+    sectionId: 'assembly_final',
+    name: 'Final',
+    thaiName: 'สายการประกอบขั้นสุดท้าย (Final Line)',
+    uph: 70,
+    productCycleTimes: {
+      '1door_150': 420.60,
+      '1door_190': 330.78,
+      'tm545': 567.57,
+      'tm595': 480.14,
+      'tdoor_us': 625.55,
+      'tm10': 314.75,
+      'tm12': 314.75,
+      'fuf': 440.28,
+    },
+  },
+  {
+    id: 'packing',
+    sectionId: 'assembly_final',
+    name: 'Packing',
+    thaiName: 'บรรจุภัณฑ์และห่อหุ้ม (Packing Line)',
+    uph: 70,
+    productCycleTimes: {
+      '1door_150': 35.09,
+      '1door_190': 35.09,
+      'tm545': 52.25,
+      'tm595': 52.39,
+      'tdoor_us': 0.00,
+      'tm10': 52.25,
+      'tm12': 52.25,
+      'fuf': 52.25,
+    },
+  },
+];
+
+export const DEFAULT_WEEKLY_ORDERS: WeeklyOrders = {
+  '1door_150': { '1W': 1815, '2W': 4439, '3W': 5070, '4W': 5729 },
+  '1door_190': { '1W': 525,  '2W': 3179, '3W': 3900, '4W': 3615 },
+  'tm545':     { '1W': 1300, '2W': 3900, '3W': 3900, '4W': 3900 },
+  'tm595':     { '1W': 520,  '2W': 1560, '3W': 2210, '4W': 1680 },
+  'tdoor_us':  { '1W': 144,  '2W': 0,    '3W': 153,  '4W': 153 },
+  'tm10':      { '1W': 390,  '2W': 1170, '3W': 722,  '4W': 704 },
+  'tm12':      { '1W': 390,  '2W': 1170, '3W': 722,  '4W': 703 },
+  'fuf':       { '1W': 1600, '2W': 4800, '3W': 6000, '4W': 6000 },
+};
+
+export const DEFAULT_SETTINGS: CalculationSettings = {
+  modelTitle: '泰国工厂标准定编测算模型',
+  area: 'LineB',
+  workshop: 'CAB',
+  monthName: '9月份 (September)',
+  baseVolume: 17500, // Monthly base volume standard
+  efficiency: 0.70, // 70% line efficiency / OEE standard
+  weeks: ['1W', '2W', '3W', '4W'],
+  roundingMode: 'round',
+  activeSectionId: 'pre_foaming', // Default to newly uploaded sheet (Rooling, Inner Box, Cab per, PU Foam)
+};
