@@ -3,6 +3,7 @@ import { CalculationResult } from '../utils/calculator';
 import {
   CalculationSettings,
   LineSegment,
+  ManualOverrides,
   PlantSectionId,
   ProductModel,
   WeeklyOrders,
@@ -19,6 +20,10 @@ import {
   Save,
   HelpCircle,
   Percent,
+  Users,
+  Sparkles,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 
 interface MasterTableProps {
@@ -27,9 +32,15 @@ interface MasterTableProps {
   products: ProductModel[];
   orders: WeeklyOrders;
   settings: CalculationSettings;
+  manualOverrides?: ManualOverrides;
   onUpdateOrder: (productId: string, week: string, value: number) => void;
   onUpdateCycleTime: (segmentId: string, productId: string, value: number) => void;
   onUpdateUph: (segmentId: string, value: number) => void;
+  onUpdateManpower: (segmentId: string, week: string, value: number) => void;
+  onUpdateAvgManpower: (segmentId: string, value: number) => void;
+  onUpdateSegmentName: (segmentId: string, name: string, thaiName: string) => void;
+  onResetSegmentManpower: (segmentId: string) => void;
+  onResetAllManpowerOverrides: () => void;
   onResetData: () => void;
   onChangeSection: (sectionId: PlantSectionId) => void;
   onChangeShareRatioMode: (mode: ShareRatioFormulaMode) => void;
@@ -43,9 +54,15 @@ export const MasterTable: React.FC<MasterTableProps> = ({
   products,
   orders,
   settings,
+  manualOverrides,
   onUpdateOrder,
   onUpdateCycleTime,
   onUpdateUph,
+  onUpdateManpower,
+  onUpdateAvgManpower,
+  onUpdateSegmentName,
+  onResetSegmentManpower,
+  onResetAllManpowerOverrides,
   onResetData,
   onChangeSection,
   onChangeShareRatioMode,
@@ -53,6 +70,7 @@ export const MasterTable: React.FC<MasterTableProps> = ({
   onOpenFormulaGuide,
 }) => {
   const [isEditMode, setIsEditMode] = useState(true); // Default to easily editable
+  const [showSummaryTable, setShowSummaryTable] = useState(true); // Default to showing summary table
   const [selectedSegmentFilter, setSelectedSegmentFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showExactDecimals, setShowExactDecimals] = useState(false);
@@ -223,6 +241,21 @@ export const MasterTable: React.FC<MasterTableProps> = ({
             )}
           </button>
 
+          {/* Toggle Summary Table Button */}
+          <button
+            onClick={() => setShowSummaryTable(!showSummaryTable)}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors ${
+              showSummaryTable
+                ? 'bg-amber-100 border-amber-300 text-amber-900 shadow-2xs'
+                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+            }`}
+            title="แสดงหรือซ่อนตารางสรุปจัดสรรกำลังคนและค่าเฉลี่ย AVG"
+          >
+            <Users className="w-3.5 h-3.5 text-amber-700" />
+            <span>{showSummaryTable ? 'ตารางสรุปกำลังคน & AVG (เปิด)' : 'ตารางสรุปกำลังคน & AVG'}</span>
+            {showSummaryTable ? <ChevronUp className="w-3 h-3 text-amber-700" /> : <ChevronDown className="w-3 h-3 text-slate-400" />}
+          </button>
+
           {/* Reset button */}
           <button
             onClick={() => {
@@ -237,6 +270,250 @@ export const MasterTable: React.FC<MasterTableProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Embedded Summary Table: Manpower Allocation & AVG by Line Segment */}
+      {showSummaryTable && (
+        <div className="border-b-2 border-slate-300 bg-amber-50/25 p-4 sm:p-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 bg-amber-100 text-amber-800 rounded-lg shrink-0">
+                <Users className="w-5 h-5 text-amber-700" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <span>ตารางสรุปจัดสรรกำลังคนและค่าเฉลี่ย AVG ตามสายการผลิต</span>
+                  <span className="px-2 py-0.5 text-[10px] font-semibold bg-emerald-100 text-emerald-800 rounded-full border border-emerald-200">
+                    แก้ไขตัวเลขบน Web ได้โดยตรง
+                  </span>
+                </h3>
+                <p className="text-[11px] text-slate-500">
+                  คลิกพิมพ์แก้ไขจำนวนคน 1W–4W, ค่าเฉลี่ย AVG, UPH และชื่อสายการผลิตได้ทันที ยอดรวม Grand Total และกราฟจะคำนวณใหม่แบบเรียลไทม์
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm('คุณต้องการคืนค่าตัวเลขกำลังคนและ AVG ทั้งหมดกลับเป็นค่าคำนวณตามสูตร IE ใช่หรือไม่?')) {
+                    onResetAllManpowerOverrides();
+                  }
+                }}
+                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors shadow-2xs"
+                title="รีเซ็ตตัวเลขกำลังคนทั้งหมดกลับไปใช้สูตร IE"
+              >
+                <RotateCcw className="w-3 h-3 text-slate-500" />
+                <span>คืนค่าสูตร IE ทั้งหมด</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={onSaveToStorage}
+                className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-2xs transition-colors"
+              >
+                <Save className="w-3 h-3" />
+                <span>บันทึกข้อมูล</span>
+              </button>
+
+              <div className="px-3 py-1 bg-amber-200/90 text-amber-950 text-xs font-bold rounded-lg border border-amber-400">
+                รวม AVG: {result.totals.avgManpower} คน
+              </div>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto bg-white rounded-lg border border-slate-200 shadow-2xs">
+            <table className="w-full text-xs text-left">
+              <thead className="bg-slate-100 text-slate-700 font-semibold uppercase tracking-wider text-[11px] border-b border-slate-200">
+                <tr>
+                  <th className="px-4 py-2.5 min-w-[200px]">สายการผลิต (Line Segment)</th>
+                  <th className="px-3 py-2.5 text-center min-w-[80px]">UPH</th>
+                  <th className="px-3 py-2.5 text-right min-w-[80px]">1W (คน)</th>
+                  <th className="px-3 py-2.5 text-right min-w-[80px]">2W (คน)</th>
+                  <th className="px-3 py-2.5 text-right min-w-[80px]">3W (คน)</th>
+                  <th className="px-3 py-2.5 text-right min-w-[80px]">4W (คน)</th>
+                  <th className="px-4 py-2.5 text-center bg-amber-300 text-amber-950 font-bold border-l border-amber-400 min-w-[90px]">
+                    AVG (เฉลี่ย)
+                  </th>
+                  <th className="px-4 py-2.5 text-right min-w-[100px]">สัดส่วนในหมวด</th>
+                  <th className="px-3 py-2.5 text-center min-w-[95px]">สถานะ / คืนค่า</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 tabular-nums font-mono text-slate-800">
+                {displayedSegments.map((segment) => {
+                  const summary = result.summaries.find((s) => s.lineSegment.id === segment.id);
+                  const avgSeg = summary?.avgManpower ?? 0;
+                  const totalAvg = result.totals.avgManpower || 1;
+                  const sharePercent = ((Number(avgSeg) / Number(totalAvg)) * 100).toFixed(1);
+
+                  const hasSegmentOverride =
+                    (manualOverrides?.manpower?.[segment.id] &&
+                      Object.keys(manualOverrides.manpower[segment.id]).length > 0) ||
+                    manualOverrides?.avg?.[segment.id] !== undefined;
+
+                  return (
+                    <tr key={`summary-row-${segment.id}`} className="hover:bg-slate-50 transition-colors">
+                      {/* Segment Name (Editable) */}
+                      <td className="px-4 py-2 font-sans font-medium text-slate-900">
+                        {isEditMode ? (
+                          <div className="space-y-1 w-full max-w-[260px]">
+                            <input
+                              type="text"
+                              value={segment.name}
+                              onChange={(e) =>
+                                onUpdateSegmentName(segment.id, e.target.value, segment.thaiName)
+                              }
+                              title="แก้ไขชื่อภาษาอังกฤษของสายการผลิต"
+                              className="w-full px-1.5 py-0.5 text-xs font-bold text-slate-900 bg-white border border-slate-300 rounded focus:border-blue-500 focus:outline-hidden"
+                            />
+                            <input
+                              type="text"
+                              value={segment.thaiName}
+                              onChange={(e) =>
+                                onUpdateSegmentName(segment.id, segment.name, e.target.value)
+                              }
+                              title="แก้ไขชื่อภาษาไทยของสายการผลิต"
+                              className="w-full px-1.5 py-0.5 text-[10px] text-slate-500 bg-white border border-slate-200 rounded focus:border-blue-500 focus:outline-hidden"
+                            />
+                          </div>
+                        ) : (
+                          <div>
+                            <div className="font-bold text-slate-900">{segment.name}</div>
+                            <div className="text-[10px] text-slate-500 font-normal">{segment.thaiName}</div>
+                          </div>
+                        )}
+                      </td>
+
+                      {/* UPH (Editable) */}
+                      <td className="px-3 py-2 text-center font-bold text-amber-700">
+                        {isEditMode ? (
+                          <input
+                            type="number"
+                            value={segment.uph}
+                            onChange={(e) => onUpdateUph(segment.id, parseInt(e.target.value, 10) || 0)}
+                            title="แก้ไขเป้าหมายผลิตต่อชั่วโมง (UPH)"
+                            className="w-16 px-1.5 py-1 text-center text-xs font-mono font-bold bg-amber-50 border border-amber-300 rounded focus:bg-white focus:outline-hidden"
+                          />
+                        ) : (
+                          <span>{segment.uph}</span>
+                        )}
+                      </td>
+
+                      {/* Manpower 1W–4W (Editable) */}
+                      {weeks.map((w) => {
+                        const mpVal = summary?.manpower[w] ?? 0;
+                        const isWeekOverridden = manualOverrides?.manpower?.[segment.id]?.[w] !== undefined;
+
+                        return (
+                          <td key={`sum-mp-${segment.id}-${w}`} className="px-3 py-2 text-right font-semibold">
+                            {isEditMode ? (
+                              <input
+                                type="number"
+                                value={mpVal}
+                                onChange={(e) =>
+                                  onUpdateManpower(segment.id, w, parseInt(e.target.value, 10) || 0)
+                                }
+                                title={`แก้ไขจำนวนกำลังคนที่จัดสรรในสัปดาห์ ${w}`}
+                                className={`w-16 px-1.5 py-1 text-right text-xs font-mono font-bold rounded focus:bg-white focus:ring-1 focus:ring-emerald-500 focus:outline-hidden ${
+                                  isWeekOverridden
+                                    ? 'bg-amber-100 border-2 border-amber-500 text-amber-950'
+                                    : 'bg-emerald-50 border border-emerald-300 text-emerald-950'
+                                }`}
+                              />
+                            ) : (
+                              <span className={`inline-block px-2 py-0.5 rounded font-bold border ${
+                                isWeekOverridden
+                                  ? 'bg-amber-100 text-amber-950 border-amber-400'
+                                  : 'bg-emerald-50 text-emerald-900 border-emerald-200'
+                              }`}>
+                                {mpVal}
+                              </span>
+                            )}
+                          </td>
+                        );
+                      })}
+
+                      {/* AVG Column (Editable) */}
+                      <td className="px-4 py-2 text-center font-extrabold text-amber-950 bg-amber-100/70 border-l border-amber-300">
+                        {isEditMode ? (
+                          <input
+                            type="number"
+                            value={avgSeg}
+                            onChange={(e) =>
+                              onUpdateAvgManpower(segment.id, parseInt(e.target.value, 10) || 0)
+                            }
+                            title="แก้ไขค่าเฉลี่ย AVG ของสายการผลิตนี้"
+                            className={`w-16 px-1.5 py-1 text-center text-xs font-mono font-extrabold rounded focus:bg-white focus:outline-hidden ${
+                              manualOverrides?.avg?.[segment.id] !== undefined
+                                ? 'bg-amber-300 border-2 border-amber-600 text-amber-950'
+                                : 'bg-amber-200 border border-amber-400 text-amber-950'
+                            }`}
+                          />
+                        ) : (
+                          <span className={`inline-block px-2.5 py-0.5 rounded font-extrabold border ${
+                            manualOverrides?.avg?.[segment.id] !== undefined
+                              ? 'bg-amber-300 text-amber-950 border-amber-500'
+                              : 'bg-amber-200 text-amber-950 border-amber-400/50'
+                          }`}>
+                            {avgSeg}
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Share of Category */}
+                      <td className="px-4 py-2 text-right font-semibold text-slate-600">
+                        {sharePercent}%
+                      </td>
+
+                      {/* Status / Revert */}
+                      <td className="px-3 py-2 text-center font-sans">
+                        {hasSegmentOverride ? (
+                          <button
+                            type="button"
+                            onClick={() => onResetSegmentManpower(segment.id)}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300 rounded transition-colors shadow-2xs"
+                            title="คลิกเพื่อคืนค่าคำนวณตามสูตร IE สำหรับสายการผลิตนี้"
+                          >
+                            <RotateCcw className="w-2.5 h-2.5" />
+                            <span>คืนสูตร IE</span>
+                          </button>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 rounded">
+                            <Sparkles className="w-2.5 h-2.5 text-emerald-500" />
+                            <span>ตามสูตร</span>
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot className="bg-slate-900 text-white font-bold text-xs">
+                <tr>
+                  <td className="px-4 py-2.5 font-sans uppercase">รวมอัตรากำลังพล (Total Manpower)</td>
+                  <td className="px-3 py-2.5 text-center text-amber-300 font-mono">
+                    {result.totals.uph['1W']}
+                  </td>
+                  {weeks.map((w) => (
+                    <td key={`sum-foot-${w}`} className="px-3 py-2.5 text-right text-emerald-300 font-mono text-sm">
+                      {result.totals.manpower[w]}
+                    </td>
+                  ))}
+                  <td className="px-4 py-2.5 text-center text-amber-950 font-mono text-sm bg-amber-400 border-l border-amber-500 font-extrabold">
+                    {result.totals.avgManpower}
+                  </td>
+                  <td className="px-4 py-2.5 text-right text-slate-300 font-mono">
+                    100.0%
+                  </td>
+                  <td className="px-3 py-2.5 text-center text-slate-400 font-mono text-[11px]">
+                    /
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Main Responsive Table */}
       <div className="overflow-x-auto max-h-[720px] border-collapse relative">
@@ -380,8 +657,33 @@ export const MasterTable: React.FC<MasterTableProps> = ({
                             rowSpan={totalSegmentRows}
                             className="px-3 py-3 border-r border-slate-300 font-sans font-semibold text-slate-900 bg-white/95 align-middle"
                           >
-                            <div className="font-bold text-slate-900 text-xs">{segment.name}</div>
-                            <div className="text-[10px] text-slate-500 font-normal mt-0.5">{segment.thaiName}</div>
+                            {isEditMode ? (
+                              <div className="space-y-1 min-w-[130px]">
+                                <input
+                                  type="text"
+                                  value={segment.name}
+                                  onChange={(e) =>
+                                    onUpdateSegmentName(segment.id, e.target.value, segment.thaiName)
+                                  }
+                                  title="แก้ไขชื่อภาษาอังกฤษของสายการผลิต"
+                                  className="w-full px-1.5 py-0.5 text-xs font-bold text-slate-900 bg-white border border-slate-300 rounded focus:border-blue-500 focus:outline-hidden"
+                                />
+                                <input
+                                  type="text"
+                                  value={segment.thaiName}
+                                  onChange={(e) =>
+                                    onUpdateSegmentName(segment.id, segment.name, e.target.value)
+                                  }
+                                  title="แก้ไขชื่อภาษาไทยของสายการผลิต"
+                                  className="w-full px-1.5 py-0.5 text-[10px] text-slate-500 bg-white border border-slate-200 rounded focus:border-blue-500 focus:outline-hidden"
+                                />
+                              </div>
+                            ) : (
+                              <div>
+                                <div className="font-bold text-slate-900 text-xs">{segment.name}</div>
+                                <div className="text-[10px] text-slate-500 font-normal mt-0.5">{segment.thaiName}</div>
+                              </div>
+                            )}
                           </td>
                         )}
 
@@ -500,32 +802,100 @@ export const MasterTable: React.FC<MasterTableProps> = ({
                           weeks.map((w) => {
                             const mp = summary?.manpower[w] || 0;
                             const raw = summary?.rawManpower[w] || 0;
+                            const isOverridden = manualOverrides?.manpower?.[segment.id]?.[w] !== undefined;
+
                             return (
                               <td
                                 key={`mp-seg-${w}`}
                                 rowSpan={totalSegmentRows}
                                 className="px-2 py-2 border-r border-slate-200 text-center font-bold text-slate-900 bg-emerald-50/50 align-middle text-sm"
                               >
-                                <span className="inline-block px-2 py-0.5 rounded bg-emerald-100/90 text-emerald-950 font-bold border border-emerald-300/80">
-                                  {showExactDecimals ? raw.toFixed(2) : mp}
-                                </span>
+                                {isEditMode ? (
+                                  <div className="flex flex-col items-center gap-0.5">
+                                    <input
+                                      type="number"
+                                      value={mp}
+                                      onChange={(e) =>
+                                        onUpdateManpower(segment.id, w, parseInt(e.target.value, 10) || 0)
+                                      }
+                                      title={isOverridden ? `สัปดาห์ ${w}: แก้ไขด้วยตนเอง (ค่าคำนวณตามสูตร: ${raw.toFixed(2)})` : `สัปดาห์ ${w}: คำนวณตามสูตร IE`}
+                                      className={`w-14 px-1 py-0.5 text-center text-xs font-mono font-bold rounded focus:bg-white focus:ring-1 focus:ring-emerald-500 focus:outline-hidden ${
+                                        isOverridden
+                                          ? 'bg-amber-100 border-2 border-amber-500 text-amber-950 shadow-2xs'
+                                          : 'bg-emerald-100/90 border border-emerald-300 text-emerald-950'
+                                      }`}
+                                    />
+                                    {isOverridden && (
+                                      <span className="text-[9px] text-amber-700 font-sans font-medium">ปรับแก้</span>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className={`inline-block px-2 py-0.5 rounded font-bold border ${
+                                    isOverridden
+                                      ? 'bg-amber-100 text-amber-950 border-amber-400'
+                                      : 'bg-emerald-100/90 text-emerald-950 border-emerald-300/80'
+                                  }`}>
+                                    {showExactDecimals ? raw.toFixed(2) : mp}
+                                  </span>
+                                )}
                               </td>
                             );
                           })}
 
                         {/* AVG Column (Merged per Segment) */}
-                        {isFirstRowOfSegment && (
-                          <td
-                            rowSpan={totalSegmentRows}
-                            className="px-3 py-2 text-center font-extrabold text-amber-950 bg-amber-100/70 align-middle text-sm border-l border-amber-300"
-                          >
-                            <span className="inline-block px-2.5 py-0.5 rounded bg-amber-200/90 text-amber-950 border border-amber-400/50">
-                              {showExactDecimals
-                                ? summary?.rawAvgManpower.toFixed(2)
-                                : summary?.avgManpower}
-                            </span>
-                          </td>
-                        )}
+                        {isFirstRowOfSegment && (() => {
+                          const isAvgOverridden = manualOverrides?.avg?.[segment.id] !== undefined;
+                          const hasAnyOverride =
+                            isAvgOverridden ||
+                            (manualOverrides?.manpower?.[segment.id] &&
+                              Object.keys(manualOverrides.manpower[segment.id]).length > 0);
+
+                          return (
+                            <td
+                              rowSpan={totalSegmentRows}
+                              className="px-3 py-2 text-center font-extrabold text-amber-950 bg-amber-100/70 align-middle text-sm border-l border-amber-300"
+                            >
+                              {isEditMode ? (
+                                <div className="flex flex-col items-center gap-0.5">
+                                  <input
+                                    type="number"
+                                    value={summary?.avgManpower || 0}
+                                    onChange={(e) =>
+                                      onUpdateAvgManpower(segment.id, parseInt(e.target.value, 10) || 0)
+                                    }
+                                    title={isAvgOverridden ? `ค่าเฉลี่ย AVG ปรับแก้ (คำนวณตามสูตร: ${summary?.rawAvgManpower})` : 'ค่าเฉลี่ย AVG'}
+                                    className={`w-14 px-1 py-0.5 text-center text-xs font-mono font-extrabold rounded focus:bg-white focus:ring-1 focus:ring-amber-500 focus:outline-hidden ${
+                                      isAvgOverridden
+                                        ? 'bg-amber-300 border-2 border-amber-600 text-amber-950 shadow-2xs'
+                                        : 'bg-amber-200 border border-amber-400 text-amber-950'
+                                    }`}
+                                  />
+                                  {hasAnyOverride && (
+                                    <button
+                                      type="button"
+                                      onClick={() => onResetSegmentManpower(segment.id)}
+                                      title="คืนค่าคำนวณตามสูตร IE สำหรับสายการผลิตนี้"
+                                      className="inline-flex items-center gap-0.5 text-[9px] text-amber-800 hover:text-amber-950 hover:underline font-sans mt-0.5"
+                                    >
+                                      <RotateCcw className="w-2.5 h-2.5" />
+                                      <span>คืนสูตร</span>
+                                    </button>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className={`inline-block px-2.5 py-0.5 rounded border ${
+                                  isAvgOverridden
+                                    ? 'bg-amber-300 text-amber-950 border-amber-500 font-extrabold'
+                                    : 'bg-amber-200/90 text-amber-950 border-amber-400/50 font-bold'
+                                }`}>
+                                  {showExactDecimals
+                                    ? summary?.rawAvgManpower.toFixed(2)
+                                    : summary?.avgManpower}
+                                </span>
+                              )}
+                            </td>
+                          );
+                        })()}
                       </tr>
                     );
                   })}

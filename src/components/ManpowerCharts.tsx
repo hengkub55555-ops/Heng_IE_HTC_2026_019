@@ -1,14 +1,32 @@
 import React, { useState } from 'react';
 import { CalculationResult } from '../utils/calculator';
-import { CalculationSettings, LineSegment, PlantSectionId } from '../types/manpower';
+import { CalculationSettings, LineSegment, ManualOverrides, PlantSectionId } from '../types/manpower';
 import { PLANT_SECTIONS } from '../data/initialData';
-import { BarChart3, PieChart, Activity, TrendingUp, Layers } from 'lucide-react';
+import {
+  BarChart3,
+  PieChart,
+  Activity,
+  TrendingUp,
+  Edit2,
+  Check,
+  Save,
+  RotateCcw,
+  Sparkles,
+} from 'lucide-react';
 
 interface ManpowerChartsProps {
   result: CalculationResult;
   lineSegments: LineSegment[];
   settings: CalculationSettings;
   onChangeSection: (sectionId: PlantSectionId) => void;
+  onUpdateManpower: (segmentId: string, week: string, value: number) => void;
+  onUpdateAvgManpower: (segmentId: string, value: number) => void;
+  onUpdateSegmentName: (segmentId: string, name: string, thaiName: string) => void;
+  onUpdateUph: (segmentId: string, value: number) => void;
+  onResetManpowerOverrides: () => void;
+  onResetSegmentManpower?: (segmentId: string) => void;
+  onSaveData: () => void;
+  manualOverrides?: ManualOverrides;
 }
 
 const SEGMENT_COLORS: Record<string, { bg: string; fill: string; stroke: string; label: string }> = {
@@ -34,10 +52,19 @@ export const ManpowerCharts: React.FC<ManpowerChartsProps> = ({
   lineSegments,
   settings,
   onChangeSection,
+  onUpdateManpower,
+  onUpdateAvgManpower,
+  onUpdateSegmentName,
+  onUpdateUph,
+  onResetManpowerOverrides,
+  onResetSegmentManpower,
+  onSaveData,
+  manualOverrides,
 }) => {
   const { weeks, activeSectionId } = settings;
   const [activeWeek, setActiveWeek] = useState<string>('3W');
   const [hoveredSegment, setHoveredSegment] = useState<string | null>(null);
+  const [isSummaryEditMode, setIsSummaryEditMode] = useState<boolean>(true); // editable by default
 
   // Stacked Bar Heights
   const maxWeeklyTotal = Math.max(...weeks.map((w) => result.totals.manpower[w] || 0), 30);
@@ -114,7 +141,7 @@ export const ManpowerCharts: React.FC<ManpowerChartsProps> = ({
             <span>รายงานวิเคราะห์และสรุปผลอัตรากำลังพล (Workforce Analytics)</span>
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            สรุปข้อมูลเปรียบเทียบกำลังคน UPH และค่าเฉลี่ย AVG ในแต่ละสัปดาห์
+            สรุปข้อมูลเปรียบเทียบกำลังคน UPH และค่าเฉลี่ย AVG (สามารถแก้ไขตัวเลขในตารางสรุปได้โดยตรง)
           </p>
         </div>
 
@@ -434,19 +461,70 @@ export const ManpowerCharts: React.FC<ManpowerChartsProps> = ({
           </div>
         </div>
 
-        {/* Chart 4: Segment Details & AVG Table */}
+        {/* Chart 4: Segment Details & AVG Table (EDITABLE DIRECTLY ON WEB) */}
         <div className="lg:col-span-12 bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
-          <div className="p-5 border-b border-slate-200 bg-slate-50/60 flex items-center justify-between">
+          <div className="p-4 sm:p-5 border-b border-slate-200 bg-slate-50/60 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h3 className="text-sm font-bold text-slate-900">
-                ตารางสรุปจัดสรรกำลังคนและค่าเฉลี่ย AVG ตามสายการผลิต
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-slate-900">
+                  ตารางสรุปจัดสรรกำลังคนและค่าเฉลี่ย AVG ตามสายการผลิต
+                </h3>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold">
+                  แก้ไขตัวเลขได้โดยตรง
+                </span>
+              </div>
               <p className="text-xs text-slate-500 mt-0.5">
-                แสดง UPH, กำลังคนแต่ละสัปดาห์, และค่าเฉลี่ย AVG ตามเอกสารอ้างอิง
+                สามารถคลิกพิมพ์แก้ไขจำนวนคน 1W–4W, ค่าเฉลี่ย AVG, UPH และชื่อสายการผลิตได้โดยตรงบนตาราง
               </p>
             </div>
-            <div className="px-3 py-1 bg-amber-100 text-amber-900 text-xs font-bold rounded-lg border border-amber-300">
-              รวม AVG: {result.totals.avgManpower} คน
+
+            {/* Actions Toolbar for Table 4 */}
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => setIsSummaryEditMode(!isSummaryEditMode)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors ${
+                  isSummaryEditMode
+                    ? 'bg-amber-100 border-amber-300 text-amber-900'
+                    : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                {isSummaryEditMode ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-amber-700" />
+                    <span>โหมดแก้ไขตัวเลข (เปิดอยู่)</span>
+                  </>
+                ) : (
+                  <>
+                    <Edit2 className="w-3.5 h-3.5 text-slate-500" />
+                    <span>เปิดแก้ไขตัวเลขในตาราง</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={() => {
+                  if (window.confirm('คุณต้องการรีเซ็ตตัวเลขกำลังคนและ AVG ทั้งหมดกลับเป็นค่าคำนวณตามสูตรใช่หรือไม่?')) {
+                    onResetManpowerOverrides();
+                  }
+                }}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+                title="รีเซ็ตกลับไปใช้ค่าคำนวณตามสูตร IE"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>คืนค่าคำนวณตามสูตร</span>
+              </button>
+
+              <button
+                onClick={onSaveData}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-lg shadow-sm transition-all whitespace-nowrap"
+              >
+                <Save className="w-3.5 h-3.5" />
+                <span>บันทึก</span>
+              </button>
+
+              <div className="px-3 py-1 bg-amber-100 text-amber-900 text-xs font-bold rounded-lg border border-amber-300 ml-1">
+                รวม AVG: {result.totals.avgManpower} คน
+              </div>
             </div>
           </div>
 
@@ -454,50 +532,146 @@ export const ManpowerCharts: React.FC<ManpowerChartsProps> = ({
             <table className="w-full text-xs text-left">
               <thead className="bg-slate-100 text-slate-700 font-semibold uppercase tracking-wider text-[11px] border-b border-slate-200">
                 <tr>
-                  <th className="px-4 py-3">สายการผลิต (Line Segment)</th>
-                  <th className="px-3 py-3 text-center">UPH</th>
-                  <th className="px-3 py-3 text-right">1W (คน)</th>
-                  <th className="px-3 py-3 text-right">2W (คน)</th>
-                  <th className="px-3 py-3 text-right">3W (คน)</th>
-                  <th className="px-3 py-3 text-right">4W (คน)</th>
-                  <th className="px-4 py-3 text-center bg-amber-300 text-amber-950 font-bold border-l border-amber-400">
+                  <th className="px-4 py-3 min-w-[200px]">สายการผลิต (Line Segment)</th>
+                  <th className="px-3 py-3 text-center min-w-[80px]">UPH</th>
+                  <th className="px-3 py-3 text-right min-w-[80px]">1W (คน)</th>
+                  <th className="px-3 py-3 text-right min-w-[80px]">2W (คน)</th>
+                  <th className="px-3 py-3 text-right min-w-[80px]">3W (คน)</th>
+                  <th className="px-3 py-3 text-right min-w-[80px]">4W (คน)</th>
+                  <th className="px-4 py-3 text-center bg-amber-300 text-amber-950 font-bold border-l border-amber-400 min-w-[90px]">
                     AVG (เฉลี่ย)
                   </th>
-                  <th className="px-4 py-3 text-right">สัดส่วนในหมวด</th>
+                  <th className="px-4 py-3 text-right min-w-[100px]">สัดส่วนในหมวด</th>
+                  <th className="px-3 py-3 text-center min-w-[95px]">สถานะ / คืนค่า</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 tabular-nums font-mono text-slate-800">
                 {lineSegments.map((segment) => {
                   const summary = result.summaries.find((s) => s.lineSegment.id === segment.id);
                   const color = SEGMENT_COLORS[segment.id] || { fill: '#64748b' };
-                  const counts = weeks.map((w) => summary?.manpower[w] || 0);
                   const avgSeg = summary?.avgManpower ?? 0;
                   const sharePercent = ((Number(avgSeg) / (Number(avgTotal) || 1)) * 100).toFixed(1);
+                  const hasSegmentOverride =
+                    (manualOverrides?.manpower?.[segment.id] &&
+                      Object.keys(manualOverrides.manpower[segment.id]).length > 0) ||
+                    manualOverrides?.avg?.[segment.id] !== undefined;
 
                   return (
                     <tr key={segment.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-4 py-3 font-sans font-medium text-slate-900 flex items-center gap-2.5">
-                        <span className="w-3 h-3 rounded-xs shrink-0" style={{ backgroundColor: color.fill }} />
-                        <div>
-                          <div className="font-bold">{segment.name}</div>
-                          <div className="text-[10px] text-slate-500 font-normal">{segment.thaiName}</div>
+                      {/* Segment Name & Thai Name (Editable) */}
+                      <td className="px-4 py-2 font-sans font-medium text-slate-900">
+                        <div className="flex items-center gap-2">
+                          <span className="w-3 h-3 rounded-xs shrink-0" style={{ backgroundColor: color.fill }} />
+                          {isSummaryEditMode ? (
+                            <div className="space-y-1 w-full">
+                              <input
+                                type="text"
+                                value={segment.name}
+                                onChange={(e) =>
+                                  onUpdateSegmentName(segment.id, e.target.value, segment.thaiName)
+                                }
+                                title="คลิกเพื่อแก้ไขชื่อภาษาอังกฤษของสายการผลิต"
+                                className="w-full px-1.5 py-0.5 text-xs font-bold text-slate-900 bg-white border border-slate-300 rounded focus:border-blue-500 focus:outline-hidden"
+                              />
+                              <input
+                                type="text"
+                                value={segment.thaiName}
+                                onChange={(e) =>
+                                  onUpdateSegmentName(segment.id, segment.name, e.target.value)
+                                }
+                                title="คลิกเพื่อแก้ไขชื่อภาษาไทยของสายการผลิต"
+                                className="w-full px-1.5 py-0.5 text-[10px] text-slate-500 bg-white border border-slate-200 rounded focus:border-blue-500 focus:outline-hidden"
+                              />
+                            </div>
+                          ) : (
+                            <div>
+                              <div className="font-bold">{segment.name}</div>
+                              <div className="text-[10px] text-slate-500 font-normal">{segment.thaiName}</div>
+                            </div>
+                          )}
                         </div>
                       </td>
-                      <td className="px-3 py-3 text-center font-bold text-amber-700">
-                        {segment.uph}
+
+                      {/* UPH (Editable) */}
+                      <td className="px-3 py-2 text-center font-bold text-amber-700">
+                        {isSummaryEditMode ? (
+                          <input
+                            type="number"
+                            value={segment.uph}
+                            onChange={(e) => onUpdateUph(segment.id, parseInt(e.target.value, 10) || 0)}
+                            title="แก้ไขเป้าหมายผลิตต่อชั่วโมง (UPH)"
+                            className="w-16 px-1.5 py-1 text-center text-xs font-mono font-bold bg-amber-50 border border-amber-300 rounded focus:bg-white focus:outline-hidden"
+                          />
+                        ) : (
+                          <span>{segment.uph}</span>
+                        )}
                       </td>
-                      {weeks.map((w) => (
-                        <td key={w} className="px-3 py-3 text-right font-semibold text-slate-800">
-                          {summary?.manpower[w] ?? 0}
-                        </td>
-                      ))}
-                      <td className="px-4 py-3 text-center font-extrabold text-amber-950 bg-amber-100/70 border-l border-amber-300">
-                        <span className="inline-block px-2.5 py-0.5 rounded bg-amber-200 text-amber-950">
-                          {avgSeg}
-                        </span>
+
+                      {/* Manpower 1W, 2W, 3W, 4W (Editable) */}
+                      {weeks.map((w) => {
+                        const mpVal = summary?.manpower[w] ?? 0;
+                        return (
+                          <td key={w} className="px-3 py-2 text-right font-semibold text-slate-800">
+                            {isSummaryEditMode ? (
+                              <input
+                                type="number"
+                                value={mpVal}
+                                onChange={(e) =>
+                                  onUpdateManpower(segment.id, w, parseInt(e.target.value, 10) || 0)
+                                }
+                                title={`แก้ไขจำนวนกำลังคนที่จัดสรรในสัปดาห์ ${w}`}
+                                className="w-16 px-1.5 py-1 text-right text-xs font-mono font-bold bg-emerald-50 border border-emerald-300 rounded focus:bg-white focus:ring-1 focus:ring-emerald-500 focus:outline-hidden text-emerald-950"
+                              />
+                            ) : (
+                              <span className="inline-block px-2 py-0.5 rounded bg-emerald-50 text-emerald-900 font-bold">
+                                {mpVal}
+                              </span>
+                            )}
+                          </td>
+                        );
+                      })}
+
+                      {/* AVG Column (Editable) */}
+                      <td className="px-4 py-2 text-center font-extrabold text-amber-950 bg-amber-100/70 border-l border-amber-300">
+                        {isSummaryEditMode ? (
+                          <input
+                            type="number"
+                            value={avgSeg}
+                            onChange={(e) =>
+                              onUpdateAvgManpower(segment.id, parseInt(e.target.value, 10) || 0)
+                            }
+                            title="แก้ไขค่าเฉลี่ย AVG ของสายการผลิตนี้"
+                            className="w-16 px-1.5 py-1 text-center text-xs font-mono font-extrabold bg-amber-200 border border-amber-400 rounded focus:bg-white focus:outline-hidden text-amber-950"
+                          />
+                        ) : (
+                          <span className="inline-block px-2.5 py-0.5 rounded bg-amber-200 text-amber-950">
+                            {avgSeg}
+                          </span>
+                        )}
                       </td>
-                      <td className="px-4 py-3 text-right font-semibold text-slate-600">
+
+                      {/* Share of Category */}
+                      <td className="px-4 py-2 text-right font-semibold text-slate-600">
                         {sharePercent}%
+                      </td>
+
+                      {/* Status & Revert Action */}
+                      <td className="px-3 py-2 text-center font-sans">
+                        {hasSegmentOverride ? (
+                          <button
+                            onClick={() => onResetSegmentManpower?.(segment.id)}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300 rounded transition-colors shadow-2xs"
+                            title="คลิกเพื่อคืนค่าคำนวณตามสูตร IE สำหรับสายการผลิตนี้"
+                          >
+                            <RotateCcw className="w-2.5 h-2.5" />
+                            <span>คืนสูตร IE</span>
+                          </button>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 rounded">
+                            <Sparkles className="w-2.5 h-2.5 text-emerald-500" />
+                            <span>ตามสูตร</span>
+                          </span>
+                        )}
                       </td>
                     </tr>
                   );
@@ -519,6 +693,9 @@ export const ManpowerCharts: React.FC<ManpowerChartsProps> = ({
                   </td>
                   <td className="px-4 py-3 text-right text-slate-300">
                     100.0%
+                  </td>
+                  <td className="px-3 py-3 text-center text-slate-400 font-mono text-[11px]">
+                    /
                   </td>
                 </tr>
               </tfoot>

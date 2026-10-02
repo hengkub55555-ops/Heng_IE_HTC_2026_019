@@ -6,6 +6,7 @@ import {
   CalculatedRow,
   SegmentSummary,
   TableTotals,
+  ManualOverrides,
 } from '../types/manpower';
 
 export interface CalculationResult {
@@ -20,7 +21,8 @@ export function calculateManpower(
   lineSegments: LineSegment[],
   products: ProductModel[],
   orders: WeeklyOrders,
-  settings: CalculationSettings
+  settings: CalculationSettings,
+  manualOverrides?: ManualOverrides
 ): CalculationResult {
   const { weeks, baseVolume, efficiency, roundingMode, activeSectionId, shareRatioMode } = settings;
 
@@ -124,14 +126,23 @@ export function calculateManpower(
       const raw = efficiency > 0 ? (wh * uph) / (3600 * efficiency) : 0;
       rawManpower[w] = raw;
 
+      let calculatedVal = 0;
       if (roundingMode === 'round') {
-        manpower[w] = Math.round(raw);
+        calculatedVal = Math.round(raw);
       } else if (roundingMode === 'ceil') {
-        manpower[w] = Math.ceil(raw);
+        calculatedVal = Math.ceil(raw);
       } else if (roundingMode === 'floor') {
-        manpower[w] = Math.floor(raw);
+        calculatedVal = Math.floor(raw);
       } else {
-        manpower[w] = Number(raw.toFixed(2));
+        calculatedVal = Number(raw.toFixed(2));
+      }
+
+      // Check if manual override exists
+      const manualVal = manualOverrides?.manpower?.[segment.id]?.[w];
+      if (manualVal !== undefined && manualVal !== null && !isNaN(manualVal)) {
+        manpower[w] = manualVal;
+      } else {
+        manpower[w] = calculatedVal;
       }
     });
 
@@ -139,7 +150,13 @@ export function calculateManpower(
     const mpValues = weeks.map((w) => manpower[w]);
     const rawMpValues = weeks.map((w) => rawManpower[w]);
     const rawAvg = rawMpValues.reduce((a, b) => a + b, 0) / (weeks.length || 1);
-    const avgMp = Math.round(mpValues.reduce((a, b) => a + b, 0) / (weeks.length || 1));
+    const calculatedAvgMp = Math.round(mpValues.reduce((a, b) => a + b, 0) / (weeks.length || 1));
+
+    // Check if manual AVG override exists
+    const manualAvgVal = manualOverrides?.avg?.[segment.id];
+    const finalAvgMp = (manualAvgVal !== undefined && manualAvgVal !== null && !isNaN(manualAvgVal))
+      ? manualAvgVal
+      : calculatedAvgMp;
 
     const processTotalMonthOrders = weeks.reduce((sum, w) => sum + processTotalOrders[w], 0);
 
@@ -152,7 +169,7 @@ export function calculateManpower(
       uph: uphMap,
       rawManpower,
       manpower,
-      avgManpower: avgMp,
+      avgManpower: finalAvgMp,
       rawAvgManpower: Number(rawAvg.toFixed(2)),
     });
   });

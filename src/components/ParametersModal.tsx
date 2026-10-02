@@ -178,24 +178,44 @@ export const ParametersModal: React.FC<ParametersModalProps> = ({
           </div>
 
           {/* Metadata labels */}
-          <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+          <div className="space-y-3 pt-2 border-t border-slate-100">
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">พื้นที่ (Area)</label>
+              <label className="block font-semibold text-slate-700 mb-1">ชื่อโมเดล / หัวข้อรายงาน (Model Title)</label>
               <input
                 type="text"
-                value={localSettings.area}
-                onChange={(e) => setLocalSettings({ ...localSettings, area: e.target.value })}
+                value={localSettings.modelTitle}
+                onChange={(e) => setLocalSettings({ ...localSettings, modelTitle: e.target.value })}
                 className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs"
               />
             </div>
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">ช็อป/ฝ่าย (Workshop)</label>
-              <input
-                type="text"
-                value={localSettings.workshop}
-                onChange={(e) => setLocalSettings({ ...localSettings, workshop: e.target.value })}
-                className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs"
-              />
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">พื้นที่ (Area)</label>
+                <input
+                  type="text"
+                  value={localSettings.area}
+                  onChange={(e) => setLocalSettings({ ...localSettings, area: e.target.value })}
+                  className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">ช็อป/ฝ่าย (Workshop)</label>
+                <input
+                  type="text"
+                  value={localSettings.workshop}
+                  onChange={(e) => setLocalSettings({ ...localSettings, workshop: e.target.value })}
+                  className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">เดือน (Month)</label>
+                <input
+                  type="text"
+                  value={localSettings.monthName}
+                  onChange={(e) => setLocalSettings({ ...localSettings, monthName: e.target.value })}
+                  className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs"
+                />
+              </div>
             </div>
           </div>
         </div>

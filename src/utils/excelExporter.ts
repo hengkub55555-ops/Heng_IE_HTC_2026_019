@@ -1,13 +1,14 @@
 import * as XLSX from 'xlsx';
 import { calculateManpower } from './calculator';
-import { CalculationSettings, LineSegment, ProductModel, WeeklyOrders } from '../types/manpower';
+import { CalculationSettings, LineSegment, ManualOverrides, ProductModel, WeeklyOrders } from '../types/manpower';
 
 export function exportManpowerToExcel(
   allLineSegments: LineSegment[],
   products: ProductModel[],
   orders: WeeklyOrders,
   settings: CalculationSettings,
-  fileName: string = 'Thailand_Factory_Manpower_Model_LineB.xlsx'
+  fileName: string = 'Thailand_Factory_Manpower_Model_LineB.xlsx',
+  manualOverrides?: ManualOverrides
 ) {
   const wb = XLSX.utils.book_new();
   const { weeks, area, workshop, monthName, baseVolume, efficiency } = settings;
@@ -18,10 +19,16 @@ export function exportManpowerToExcel(
     targetSegments: LineSegment[],
     sectionNameLabel: string
   ) => {
-    const calcResult = calculateManpower(targetSegments, products, orders, {
-      ...settings,
-      activeSectionId: 'all', // calculate all within targetSegments
-    });
+    const calcResult = calculateManpower(
+      targetSegments,
+      products,
+      orders,
+      {
+        ...settings,
+        activeSectionId: 'all', // calculate all within targetSegments
+      },
+      manualOverrides
+    );
 
     const wsData: any[][] = [];
 
@@ -202,10 +209,16 @@ export function exportManpowerToExcel(
   buildSectionSheet('2_Assembly_Final (ประกอบและท้ายไลน์)', assemblyFinalSegments, 'Assembly & Final Line');
 
   // Sheet 3: Executive Summary (สรุปภาพรวมโรงงาน)
-  const allCalcResult = calculateManpower(allLineSegments, products, orders, {
-    ...settings,
-    activeSectionId: 'all',
-  });
+  const allCalcResult = calculateManpower(
+    allLineSegments,
+    products,
+    orders,
+    {
+      ...settings,
+      activeSectionId: 'all',
+    },
+    manualOverrides
+  );
 
   const summaryData: any[][] = [];
   summaryData.push(['สรุปผลการจัดสรรอัตรากำลังพลรวม LineB CAB (Total Factory Manpower Summary)']);

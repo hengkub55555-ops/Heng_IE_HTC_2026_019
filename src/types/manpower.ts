@@ -42,6 +42,14 @@ export interface CalculationSettings {
   roundingMode: 'round' | 'ceil' | 'floor' | 'exact';
   activeSectionId: PlantSectionId;
   shareRatioMode: ShareRatioFormulaMode; // 'total_weekly_volume' (หารด้วยยอดรวมทั้งหมด) | 'base_volume' (17,500)
+  useManualManpower?: boolean; // whether manual headcount overrides are enabled
+}
+
+export interface ManualOverrides {
+  // segmentId -> week -> manual headcount
+  manpower: Record<string, Record<string, number>>;
+  // segmentId -> manual avg
+  avg: Record<string, number>;
 }
 
 export interface CalculatedRow {

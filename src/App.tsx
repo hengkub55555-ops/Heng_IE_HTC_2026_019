@@ -14,8 +14,8 @@ import { ManpowerCharts } from './components/ManpowerCharts';
 import { ParametersModal } from './components/ParametersModal';
 import { OriginalImageModal } from './components/OriginalImageModal';
 import { FormulaGuideModal } from './components/FormulaGuideModal';
-import { PlantSectionId, ShareRatioFormulaMode } from './types/manpower';
-import { Table, BarChart3, Download, CheckCircle2, HelpCircle, Save } from 'lucide-react';
+import { ManualOverrides, PlantSectionId, ShareRatioFormulaMode } from './types/manpower';
+import { Table, BarChart3, Download, CheckCircle2, HelpCircle, Save, RotateCcw } from 'lucide-react';
 
 const STORAGE_KEY = 'manpower_sizing_state_v2';
 
@@ -53,6 +53,17 @@ export default function App() {
     return DEFAULT_SETTINGS;
   });
 
+  // Manual headcount & AVG overrides state
+  const [manualOverrides, setManualOverrides] = useState<ManualOverrides>(() => {
+    try {
+      const saved = localStorage.getItem(`${STORAGE_KEY}_manual_overrides`);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error(e);
+    }
+    return { manpower: {}, avg: {} };
+  });
+
   const [activeTab, setActiveTab] = useState<'table' | 'charts' | 'compare'>('table');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isOriginalImageOpen, setIsOriginalImageOpen] = useState(false);
@@ -65,15 +76,16 @@ export default function App() {
       localStorage.setItem(`${STORAGE_KEY}_segments`, JSON.stringify(lineSegments));
       localStorage.setItem(`${STORAGE_KEY}_orders`, JSON.stringify(orders));
       localStorage.setItem(`${STORAGE_KEY}_settings`, JSON.stringify(settings));
+      localStorage.setItem(`${STORAGE_KEY}_manual_overrides`, JSON.stringify(manualOverrides));
     } catch (err) {
       console.error('Failed to auto-save to localStorage:', err);
     }
-  }, [lineSegments, orders, settings]);
+  }, [lineSegments, orders, settings, manualOverrides]);
 
   // Recalculate whenever inputs or active section change
   const result = useMemo(() => {
-    return calculateManpower(lineSegments, products, orders, settings);
-  }, [lineSegments, products, orders, settings]);
+    return calculateManpower(lineSegments, products, orders, settings, manualOverrides);
+  }, [lineSegments, products, orders, settings, manualOverrides]);
 
   // Update order quantity
   const handleUpdateOrder = (productId: string, week: string, value: number) => {
@@ -116,6 +128,65 @@ export default function App() {
     );
   };
 
+  // Update Manpower for a specific segment and week (Editable directly on Web)
+  const handleUpdateManpower = (segmentId: string, week: string, value: number) => {
+    const cleanVal = Math.max(0, value);
+    setManualOverrides((prev) => ({
+      ...prev,
+      manpower: {
+        ...prev.manpower,
+        [segmentId]: {
+          ...(prev.manpower[segmentId] || {}),
+          [week]: cleanVal,
+        },
+      },
+    }));
+  };
+
+  // Update AVG Manpower for a specific segment (Editable directly on Web)
+  const handleUpdateAvgManpower = (segmentId: string, value: number) => {
+    const cleanVal = Math.max(0, value);
+    setManualOverrides((prev) => ({
+      ...prev,
+      avg: {
+        ...prev.avg,
+        [segmentId]: cleanVal,
+      },
+    }));
+  };
+
+  // Update Line Segment Name (English & Thai)
+  const handleUpdateSegmentName = (segmentId: string, name: string, thaiName: string) => {
+    setLineSegments((prev: any) =>
+      prev.map((seg: any) => {
+        if (seg.id === segmentId) {
+          return { ...seg, name, thaiName };
+        }
+        return seg;
+      })
+    );
+  };
+
+  // Reset a single segment's manual manpower overrides
+  const handleResetSegmentManpower = (segmentId: string) => {
+    setManualOverrides((prev) => {
+      const nextManpower = { ...prev.manpower };
+      delete nextManpower[segmentId];
+      const nextAvg = { ...prev.avg };
+      delete nextAvg[segmentId];
+      return { manpower: nextManpower, avg: nextAvg };
+    });
+    setToastMessage('คืนค่ากำลังคนและ AVG ของสายการผลิตนี้เป็นสูตรคำนวณ IE เรียบร้อยแล้ว');
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  // Reset all manpower overrides back to formula
+  const handleResetAllManpowerOverrides = () => {
+    setManualOverrides({ manpower: {}, avg: {} });
+    setToastMessage('คืนค่าตัวเลขกำลังคนและ AVG ทั้งหมดกลับเป็นค่าคำนวณตามสูตร IE เรียบร้อยแล้ว');
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
   // Change active section
   const handleChangeSection = (sectionId: PlantSectionId) => {
     setSettings((prev: any) => ({ ...prev, activeSectionId: sectionId }));
@@ -140,22 +211,25 @@ export default function App() {
       localStorage.setItem(`${STORAGE_KEY}_segments`, JSON.stringify(lineSegments));
       localStorage.setItem(`${STORAGE_KEY}_orders`, JSON.stringify(orders));
       localStorage.setItem(`${STORAGE_KEY}_settings`, JSON.stringify(settings));
-      setToastMessage('บันทึกข้อมูลทุกตัวเลขลงหน่วยความจำของเว็บเรียบร้อยแล้ว');
+      localStorage.setItem(`${STORAGE_KEY}_manual_overrides`, JSON.stringify(manualOverrides));
+      setToastMessage('บันทึกข้อมูลทุกตัวเลข (Order, เวลา, กำลังคน, AVG) ลงหน่วยความจำเรียบร้อยแล้ว');
       setTimeout(() => setToastMessage(null), 4000);
     } catch (e) {
       alert('ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่อีกครั้ง');
     }
   };
 
-  // Reset to original data
+  // Reset to original factory data
   const handleResetData = () => {
     localStorage.removeItem(`${STORAGE_KEY}_segments`);
     localStorage.removeItem(`${STORAGE_KEY}_orders`);
     localStorage.removeItem(`${STORAGE_KEY}_settings`);
+    localStorage.removeItem(`${STORAGE_KEY}_manual_overrides`);
     setLineSegments(ALL_LINE_SEGMENTS);
     setOrders(DEFAULT_WEEKLY_ORDERS);
     setSettings(DEFAULT_SETTINGS);
-    setToastMessage('คืนค่าข้อมูลเริ่มต้นตามภาพเอกสารเรียบร้อยแล้ว');
+    setManualOverrides({ manpower: {}, avg: {} });
+    setToastMessage('คืนค่าข้อมูลเริ่มต้นตามภาพเอกสารทั้งหมดเรียบร้อยแล้ว');
     setTimeout(() => setToastMessage(null), 4000);
   };
 
@@ -163,8 +237,8 @@ export default function App() {
   const handleExportExcel = () => {
     try {
       const fileName = `Thailand_Factory_Manpower_Model_LineB_${new Date().toISOString().slice(0, 10)}.xlsx`;
-      exportManpowerToExcel(lineSegments, products, orders, settings, fileName);
-      setToastMessage(`ดาวน์โหลดไฟล์ Excel เรียบร้อยแล้ว (ครอบคลุมแถว SUM และการคำนวณทั้งหมด): ${fileName}`);
+      exportManpowerToExcel(lineSegments, products, orders, settings, fileName, manualOverrides);
+      setToastMessage(`ดาวน์โหลดไฟล์ Excel เรียบร้อยแล้ว (ครอบคลุมทั้งตารางหลัก ตารางสรุป และตัวเลขที่แก้ไข): ${fileName}`);
       setTimeout(() => setToastMessage(null), 5000);
     } catch (err) {
       console.error('Failed to export Excel:', err);
@@ -280,9 +354,15 @@ export default function App() {
               products={products}
               orders={orders}
               settings={settings}
+              manualOverrides={manualOverrides}
               onUpdateOrder={handleUpdateOrder}
               onUpdateCycleTime={handleUpdateCycleTime}
               onUpdateUph={handleUpdateUph}
+              onUpdateManpower={handleUpdateManpower}
+              onUpdateAvgManpower={handleUpdateAvgManpower}
+              onUpdateSegmentName={handleUpdateSegmentName}
+              onResetSegmentManpower={handleResetSegmentManpower}
+              onResetAllManpowerOverrides={handleResetAllManpowerOverrides}
               onResetData={handleResetData}
               onChangeSection={handleChangeSection}
               onChangeShareRatioMode={handleChangeShareRatioMode}
@@ -320,6 +400,14 @@ export default function App() {
             lineSegments={currentSectionSegments}
             settings={settings}
             onChangeSection={handleChangeSection}
+            onUpdateManpower={handleUpdateManpower}
+            onUpdateAvgManpower={handleUpdateAvgManpower}
+            onUpdateSegmentName={handleUpdateSegmentName}
+            onUpdateUph={handleUpdateUph}
+            onResetManpowerOverrides={handleResetAllManpowerOverrides}
+            onResetSegmentManpower={handleResetSegmentManpower}
+            onSaveData={handleSaveToStorage}
+            manualOverrides={manualOverrides}
           />
         )}
       </main>
